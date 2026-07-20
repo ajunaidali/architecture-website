@@ -17,7 +17,7 @@
   ------------------------------------------------------------------ */
   window.addEventListener("load", () => {
     const pre = $("#preloader");
-    if (pre) setTimeout(() => pre.classList.add("hidden"), 500);
+    if (pre) setTimeout(() => pre.classList.add("hidden"), 3000);
   });
   // Safety: never leave the preloader stuck
   setTimeout(() => { const p = $("#preloader"); if (p) p.classList.add("hidden"); }, 4000);

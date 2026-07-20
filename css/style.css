@@ -112,24 +112,104 @@ h1, h2, h3, h4, h5 { font-family: var(--font-head); color: var(--heading); font-
 .divider-line { height: 1px; background: var(--border); border: 0; }
 
 /* ------------------------- 4. PRELOADER ---------------------------- */
+/* Premium blueprint-house loader — themed with AEC brand colors.
+   Local vars keep the loader self-contained and easy to retune. */
 #preloader {
+  --ld-primary: var(--primary);          /* terracotta */
+  --ld-accent: var(--accent);            /* gold */
+  --ld-glow: rgba(168, 90, 58, 0.4);
+  --ld-accent-soft: rgba(217, 164, 65, 0.15);
   position: fixed; inset: 0; z-index: 9999;
   display: grid; place-items: center;
   background: var(--grad-dark);
   transition: opacity 0.6s ease, visibility 0.6s ease;
 }
 #preloader.hidden { opacity: 0; visibility: hidden; }
-.preloader-inner { display: grid; place-items: center; gap: 22px; }
-.preloader-logo {
-  width: 130px; filter: drop-shadow(0 8px 24px rgba(0,0,0,0.4));
-  animation: floaty 2.4s ease-in-out infinite;
-  background: #fff; padding: 10px 16px; border-radius: 12px;
+
+.loader-wrapper {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  position: relative;
 }
-.loader-bar { width: 190px; height: 4px; border-radius: 4px; background: rgba(255,255,255,0.15); overflow: hidden; }
-.loader-bar span { display: block; height: 100%; width: 40%; background: var(--grad-primary); border-radius: 4px; animation: loaderMove 1.1s ease-in-out infinite; }
-.preloader-text { color: rgba(255,255,255,0.7); font-family: var(--font-head); letter-spacing: 4px; font-size: 0.75rem; }
-@keyframes loaderMove { 0% { transform: translateX(-120%); } 100% { transform: translateX(360%); } }
-@keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+.loader-container {
+  position: relative; width: 220px; height: 220px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Rotating outer glow ring */
+.outer-ring {
+  position: absolute; width: 100%; height: 100%; border-radius: 50%;
+  border: 1.5px solid var(--ld-accent-soft);
+  border-top: 1.5px solid var(--ld-primary);
+  border-right: 1.5px solid var(--ld-accent);
+  filter: drop-shadow(0 0 8px var(--ld-glow));
+  animation: rotateRing 3.5s linear infinite;
+}
+
+/* Subtle architectural grid overlay */
+.grid-overlay {
+  position: absolute; width: 180px; height: 180px; border-radius: 50%;
+  background-image:
+    linear-gradient(rgba(217, 164, 65, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(217, 164, 65, 0.06) 1px, transparent 1px);
+  background-size: 15px 15px; background-position: center;
+  opacity: 0; animation: ldFadeIn 0.8s ease-out forwards 0.2s;
+}
+
+/* Orbiting particle */
+.orbit-particle {
+  position: absolute; width: 100%; height: 100%; border-radius: 50%;
+  animation: rotateRing 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+.orbit-particle::before {
+  content: ''; position: absolute; top: 18px; left: 50%; transform: translateX(-50%);
+  width: 4px; height: 4px; background-color: var(--ld-accent); border-radius: 50%;
+  box-shadow: 0 0 10px var(--ld-accent), 0 0 18px var(--ld-primary);
+}
+
+/* Blueprint SVG house */
+.house-svg {
+  width: 120px; height: 120px; z-index: 2;
+  filter: drop-shadow(0 0 10px rgba(168, 90, 58, 0.5));
+  animation: ldPulse 3s ease-in-out infinite 2.8s;
+}
+.blueprint-line { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.wall-lines {
+  stroke: var(--ld-primary); stroke-width: 2;
+  stroke-dasharray: 200; stroke-dashoffset: 200;
+  animation: drawLines 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards 0.4s;
+}
+.roof-lines {
+  stroke: var(--ld-accent); stroke-width: 2.5;
+  stroke-dasharray: 180; stroke-dashoffset: 180;
+  animation: drawLines 1s cubic-bezier(0.4, 0, 0.2, 1) forwards 1.4s;
+}
+.detail-lines {
+  stroke: var(--white); stroke-width: 1.5;
+  stroke-dasharray: 100; stroke-dashoffset: 100;
+  animation: drawLines 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards 2.2s;
+}
+.guide-lines {
+  stroke: rgba(217, 164, 65, 0.35); stroke-width: 1; stroke-dasharray: 2 4;
+  opacity: 0; animation: ldFadeIn 0.5s ease forwards 0.2s;
+}
+
+/* Brand text under the loader */
+.brand-name {
+  margin-top: 32px; font-size: 1.1rem; font-weight: 600; color: var(--white);
+  font-family: var(--font-head); text-transform: uppercase; letter-spacing: 3px;
+  text-shadow: 0 0 12px var(--ld-glow), 0 0 24px rgba(217, 164, 65, 0.3);
+  opacity: 0; transform: translateY(8px);
+  animation: fadeUpText 1s cubic-bezier(0.16, 1, 0.3, 1) forwards 2.6s;
+}
+
+@keyframes rotateRing { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+@keyframes drawLines { to { stroke-dashoffset: 0; } }
+@keyframes ldFadeIn { to { opacity: 1; } }
+@keyframes fadeUpText { to { opacity: 1; transform: translateY(0); } }
+@keyframes ldPulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 10px rgba(168, 90, 58, 0.5)); }
+  50% { transform: scale(1.03); filter: drop-shadow(0 0 18px rgba(217, 164, 65, 0.8)); }
+}
 
 /* ------------------------- 5. NAVBAR ------------------------------- */
 .navbar {
