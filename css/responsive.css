@@ -18,7 +18,7 @@
   .hamburger { display: flex; }
 
   .grid-3, .grid-4 { grid-template-columns: repeat(2, 1fr); }
-  .split { grid-template-columns: 1fr; }
+  .split { grid-template-columns: 1fr; gap: 44px; }
   .split .split-media { order: -1; }
 
   .masonry { columns: 2; }
@@ -39,7 +39,9 @@
   .section { padding: 56px 0; }
   .section-head { margin-bottom: 38px; }
 
+  .grid { gap: 20px; }
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .split { gap: 36px; }
 
   .hero { min-height: 90vh; }
   .hero-actions { flex-direction: column; align-items: stretch; }
