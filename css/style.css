@@ -113,6 +113,7 @@ h1, h2, h3, h4, h5 { font-family: var(--font-head); color: var(--heading); font-
 
 /* ------------------------- 4. PRELOADER ---------------------------- */
 /* Premium blueprint-house loader — themed with AEC brand colors.
+   Tuned for a fast (~1.2s) build-up with GPU-accelerated transform/opacity.
    Local vars keep the loader self-contained and easy to retune. */
 #preloader {
   --ld-primary: var(--primary);          /* terracotta */
@@ -122,16 +123,22 @@ h1, h2, h3, h4, h5 { font-family: var(--font-head); color: var(--heading); font-
   position: fixed; inset: 0; z-index: 9999;
   display: grid; place-items: center;
   background: var(--grad-dark);
-  transition: opacity 0.6s ease, visibility 0.6s ease;
+  opacity: 1;
+  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.5s linear;
+  will-change: opacity;
 }
-#preloader.hidden { opacity: 0; visibility: hidden; }
+/* Fade the whole loader out — pure opacity so it stays on the GPU */
+#preloader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+/* Prevent background scroll flashing while the loader is on screen */
+body.is-loading { overflow: hidden; }
 
 .loader-wrapper {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   position: relative;
+  animation: ldWrapIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 .loader-container {
-  position: relative; width: 220px; height: 220px;
+  position: relative; width: 200px; height: 200px;
   display: flex; align-items: center; justify-content: center;
 }
 
@@ -142,73 +149,77 @@ h1, h2, h3, h4, h5 { font-family: var(--font-head); color: var(--heading); font-
   border-top: 1.5px solid var(--ld-primary);
   border-right: 1.5px solid var(--ld-accent);
   filter: drop-shadow(0 0 8px var(--ld-glow));
-  animation: rotateRing 3.5s linear infinite;
+  animation: rotateRing 1.5s linear infinite;
+  will-change: transform;
 }
 
 /* Subtle architectural grid overlay */
 .grid-overlay {
-  position: absolute; width: 180px; height: 180px; border-radius: 50%;
+  position: absolute; width: 165px; height: 165px; border-radius: 50%;
   background-image:
     linear-gradient(rgba(217, 164, 65, 0.06) 1px, transparent 1px),
     linear-gradient(90deg, rgba(217, 164, 65, 0.06) 1px, transparent 1px);
   background-size: 15px 15px; background-position: center;
-  opacity: 0; animation: ldFadeIn 0.8s ease-out forwards 0.2s;
+  opacity: 0; animation: ldFadeIn 0.4s ease-out forwards 0.05s;
 }
 
 /* Orbiting particle */
 .orbit-particle {
   position: absolute; width: 100%; height: 100%; border-radius: 50%;
-  animation: rotateRing 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  animation: rotateRing 1.15s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  will-change: transform;
 }
 .orbit-particle::before {
-  content: ''; position: absolute; top: 18px; left: 50%; transform: translateX(-50%);
+  content: ''; position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
   width: 4px; height: 4px; background-color: var(--ld-accent); border-radius: 50%;
   box-shadow: 0 0 10px var(--ld-accent), 0 0 18px var(--ld-primary);
 }
 
 /* Blueprint SVG house */
 .house-svg {
-  width: 120px; height: 120px; z-index: 2;
+  width: 116px; height: 116px; z-index: 2;
   filter: drop-shadow(0 0 10px rgba(168, 90, 58, 0.5));
-  animation: ldPulse 3s ease-in-out infinite 2.8s;
+  animation: ldPulse 2.2s ease-in-out infinite 1s;
+  will-change: transform;
 }
 .blueprint-line { fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .wall-lines {
   stroke: var(--ld-primary); stroke-width: 2;
   stroke-dasharray: 200; stroke-dashoffset: 200;
-  animation: drawLines 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards 0.4s;
+  animation: drawLines 0.55s cubic-bezier(0.4, 0, 0.2, 1) forwards 0.1s;
 }
 .roof-lines {
   stroke: var(--ld-accent); stroke-width: 2.5;
   stroke-dasharray: 180; stroke-dashoffset: 180;
-  animation: drawLines 1s cubic-bezier(0.4, 0, 0.2, 1) forwards 1.4s;
+  animation: drawLines 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards 0.5s;
 }
 .detail-lines {
   stroke: var(--white); stroke-width: 1.5;
   stroke-dasharray: 100; stroke-dashoffset: 100;
-  animation: drawLines 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards 2.2s;
+  animation: drawLines 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards 0.85s;
 }
 .guide-lines {
   stroke: rgba(217, 164, 65, 0.35); stroke-width: 1; stroke-dasharray: 2 4;
-  opacity: 0; animation: ldFadeIn 0.5s ease forwards 0.2s;
+  opacity: 0; animation: ldFadeIn 0.3s ease forwards 0.05s;
 }
 
 /* Brand text under the loader */
 .brand-name {
-  margin-top: 32px; font-size: 1.1rem; font-weight: 600; color: var(--white);
+  margin-top: 30px; font-size: 1.05rem; font-weight: 600; color: var(--white);
   font-family: var(--font-head); text-transform: uppercase; letter-spacing: 3px;
   text-shadow: 0 0 12px var(--ld-glow), 0 0 24px rgba(217, 164, 65, 0.3);
   opacity: 0; transform: translateY(8px);
-  animation: fadeUpText 1s cubic-bezier(0.16, 1, 0.3, 1) forwards 2.6s;
+  animation: fadeUpText 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.7s;
 }
 
-@keyframes rotateRing { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+@keyframes rotateRing { to { transform: rotate(360deg); } }
 @keyframes drawLines { to { stroke-dashoffset: 0; } }
 @keyframes ldFadeIn { to { opacity: 1; } }
+@keyframes ldWrapIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
 @keyframes fadeUpText { to { opacity: 1; transform: translateY(0); } }
 @keyframes ldPulse {
-  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 10px rgba(168, 90, 58, 0.5)); }
-  50% { transform: scale(1.03); filter: drop-shadow(0 0 18px rgba(217, 164, 65, 0.8)); }
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
 }
 
 /* ------------------------- 5. NAVBAR ------------------------------- */
@@ -262,31 +273,140 @@ h1, h2, h3, h4, h5 { font-family: var(--font-head); color: var(--heading); font-
 .nav-icon-btn:hover { background: var(--primary); color: #fff; border-color: var(--primary); transform: translateY(-2px); }
 .nav-cta { display: inline-flex; }
 
+/* Animated hamburger → X (GPU transforms only) */
 .hamburger {
-  display: none; width: 44px; height: 44px; border: 0; background: transparent; cursor: pointer;
-  flex-direction: column; justify-content: center; align-items: center; gap: 5px;
+  display: none; position: relative; z-index: 1001;
+  width: 46px; height: 46px; border: 0; background: transparent; cursor: pointer;
+  flex-direction: column; justify-content: center; align-items: center; gap: 6px;
+  border-radius: 12px; transition: background var(--transition);
+  -webkit-tap-highlight-color: transparent;
 }
-.hamburger span { width: 24px; height: 2px; background: var(--heading); border-radius: 2px; transition: var(--transition); }
+.hamburger span {
+  width: 24px; height: 2px; background: var(--heading); border-radius: 2px;
+  transition: transform 0.35s cubic-bezier(0.16,1,0.3,1), opacity 0.2s ease, background 0.3s ease;
+  transform-origin: center;
+}
 .navbar:not(.scrolled) .hamburger span { background: #fff; }
-.hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
-.hamburger.open span:nth-child(2) { opacity: 0; }
-.hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+/* When menu is open the bars sit on the dark panel — keep them light & crisp */
+.hamburger.open span { background: #fff; }
+.hamburger.open span:nth-child(1) { transform: translateY(8px) rotate(45deg); }
+.hamburger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.hamburger.open span:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
 
-/* Mobile menu overlay */
+/* Soft overlay that fades in behind the full-screen menu */
+.menu-overlay {
+  position: fixed; inset: 0; z-index: 1001;
+  background: rgba(20, 18, 14, 0.35);
+  backdrop-filter: blur(4px) saturate(120%);
+  -webkit-backdrop-filter: blur(4px) saturate(120%);
+  opacity: 0; visibility: hidden;
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+  will-change: opacity;
+}
+.menu-overlay.show { opacity: 1; visibility: visible; }
+
+/* ---- Full-screen off-canvas menu (on-brand AEC theme) ---- */
 .mobile-menu {
-  position: fixed; inset: 0; z-index: 999; padding: 100px 28px 40px;
-  background: var(--grad-dark);
-  display: flex; flex-direction: column; gap: 6px;
-  transform: translateX(100%); transition: transform 0.45s cubic-bezier(0.16,1,0.3,1);
+  position: fixed; inset: 0; z-index: 1002;
+  width: 100%; height: 100%;
+  background: var(--page-bg);
+  display: flex; flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+  overflow: hidden;
   visibility: hidden;
 }
 .mobile-menu.open { transform: translateX(0); visibility: visible; }
-.mobile-menu a {
-  color: #fff; font-family: var(--font-head); font-size: 1.35rem; font-weight: 500;
-  padding: 14px 4px; border-bottom: 1px solid rgba(255,255,255,0.08);
+
+/* Top area: logo (left) + close (right) */
+.mm-header {
+  flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
 }
-.mobile-menu a.active { color: var(--accent); }
-.mobile-menu .btn { margin-top: 24px; }
+.mm-brand { display: inline-flex; align-items: center; }
+.mm-brand img {
+  height: 48px; width: auto; background: #fff;
+  padding: 5px 9px; border-radius: 10px; box-shadow: var(--shadow-sm);
+}
+.mm-close {
+  width: 50px; height: 50px; border-radius: 50%; cursor: pointer;
+  border: 1px solid var(--border); background: var(--surface);
+  color: var(--heading); display: grid; place-items: center;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.3s ease, color 0.3s ease, transform 0.35s cubic-bezier(0.16,1,0.3,1), border-color 0.3s ease;
+}
+.mm-close:hover, .mm-close:focus-visible {
+  background: var(--primary); color: #fff; border-color: transparent;
+  transform: rotate(90deg);
+}
+.mm-close svg { width: 22px; height: 22px; }
+
+/* Scrollable list of menu items */
+.mm-list {
+  flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  display: flex; flex-direction: column;
+  padding: 8px 0 16px;
+}
+
+/* Large, touch-friendly items with a thin divider + orange arrow */
+.mm-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px clamp(24px, 7vw, 40px);
+  font-family: var(--font-head); font-weight: 600;
+  font-size: clamp(28px, 8vw, 34px); line-height: 1.15;
+  color: var(--heading); text-decoration: none;
+  border-bottom: 1px solid var(--border);
+  opacity: 0; transform: translateX(34px);
+  transition: color 0.25s ease, background 0.25s ease, padding-left 0.3s cubic-bezier(0.16,1,0.3,1);
+}
+.mobile-menu.open .mm-item { animation: mmItemIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.mm-item .mm-label { transition: transform 0.3s cubic-bezier(0.16,1,0.3,1); }
+.mm-arrow {
+  flex: 0 0 auto; display: flex; color: var(--primary);
+  transition: transform 0.3s cubic-bezier(0.16,1,0.3,1);
+}
+.mm-arrow svg { width: 26px; height: 26px; }
+.mm-item:hover, .mm-item:focus-visible, .mm-item.active {
+  color: var(--primary); background: rgba(168, 90, 58, 0.06);
+  padding-left: clamp(32px, 9vw, 52px);
+}
+.mm-item:hover .mm-arrow, .mm-item:focus-visible .mm-arrow, .mm-item.active .mm-arrow {
+  transform: translateX(6px);
+}
+
+/* Fixed bottom bar: premium on-brand WhatsApp CTA */
+.mm-footer {
+  flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  margin: 16px clamp(20px, 6vw, 32px);
+  margin-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  padding: 17px 24px;
+  background: var(--grad-primary); color: #fff;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-head); font-weight: 600; font-size: 1.08rem;
+  letter-spacing: 0.3px; text-decoration: none;
+  box-shadow: var(--shadow-glow);
+  transition: transform 0.3s cubic-bezier(0.16,1,0.3,1), box-shadow 0.3s ease, filter 0.3s ease;
+}
+.mm-footer .mm-wa-icon { flex: 0 0 auto; display: grid; place-items: center; }
+.mm-footer .mm-wa-icon svg { width: 26px; height: 26px; }
+.mm-footer .mm-wa-label { display: inline-flex; align-items: center; }
+.mm-footer .mm-footer-arrow { display: flex; transition: transform 0.3s cubic-bezier(0.16,1,0.3,1); }
+.mm-footer .mm-footer-arrow svg { width: 22px; height: 22px; }
+.mm-footer:hover, .mm-footer:focus-visible {
+  transform: translateY(-2px); filter: brightness(1.05);
+  box-shadow: 0 16px 44px rgba(168, 90, 58, 0.45);
+}
+.mm-footer:hover .mm-footer-arrow, .mm-footer:focus-visible .mm-footer-arrow { transform: translateX(8px); }
+.mm-footer:active { transform: translateY(0) scale(0.98); }
+
+@keyframes mmItemIn { to { opacity: 1; transform: translateX(0); } }
+
+/* Lock background scroll while the panel is open */
+body.menu-open { overflow: hidden; }
 
 /* ------------------------- 6. BUTTONS ------------------------------ */
 .btn {

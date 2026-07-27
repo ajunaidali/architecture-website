@@ -13,14 +13,36 @@
   const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
 
   /* ------------------------------------------------------------------
-     1. PRELOADER — hide once page fully loaded
+     1. PRELOADER — reveal the site the moment assets are ready.
+     Keeps a short minimum so the intro feels premium, and hard-caps
+     the total time so the loader can never delay the page.
   ------------------------------------------------------------------ */
-  window.addEventListener("load", () => {
+  (function initPreloader() {
     const pre = $("#preloader");
-    if (pre) setTimeout(() => pre.classList.add("hidden"), 3000);
-  });
-  // Safety: never leave the preloader stuck
-  setTimeout(() => { const p = $("#preloader"); if (p) p.classList.add("hidden"); }, 4000);
+    if (!pre) return;
+    const MIN_VISIBLE = 1200;   // premium minimum (ms)
+    const MAX_VISIBLE = 1800;   // hard cap (ms)
+    const start = performance.now();
+    let done = false;
+
+    const hide = () => {
+      if (done) return;
+      done = true;
+      const wait = Math.max(0, MIN_VISIBLE - (performance.now() - start));
+      setTimeout(() => {
+        pre.classList.add("hidden");
+        document.body.classList.remove("is-loading");
+        // remove from the DOM after the fade so it never intercepts input
+        pre.addEventListener("transitionend", () => pre.remove(), { once: true });
+        setTimeout(() => pre.remove(), 700);
+      }, wait);
+    };
+
+    if (document.readyState === "complete") hide();
+    else window.addEventListener("load", hide, { once: true });
+    // Safety cap: reveal regardless of slow/stalled assets
+    setTimeout(hide, MAX_VISIBLE);
+  })();
 
   /* ------------------------------------------------------------------
      2. THEME TOGGLE (dark / light) with localStorage persistence
@@ -45,35 +67,140 @@
      3. STICKY NAVBAR — add .scrolled after threshold
   ------------------------------------------------------------------ */
   const navbar = $(".navbar");
-  const onScroll = () => {
-    if (navbar) navbar.classList.toggle("scrolled", window.scrollY > 40);
-    // back to top visibility
-    const bt = $(".back-top");
-    if (bt) bt.classList.toggle("show", window.scrollY > 500);
-    // parallax hero
-    if (heroBg) {
-      const y = window.scrollY;
-      if (y < window.innerHeight) heroBg.style.transform = `translateY(${y * 0.35}px)`;
-    }
-  };
   const heroBg = $(".hero .hero-bg");
+  const backTopBtn = $(".back-top");
+  const vh = () => window.innerHeight;
+  let ticking = false;
+  const render = () => {
+    const y = window.scrollY;
+    if (navbar) navbar.classList.toggle("scrolled", y > 40);
+    if (backTopBtn) backTopBtn.classList.toggle("show", y > 500);
+    // GPU-friendly parallax — only while the hero is on screen
+    if (heroBg && y < vh()) heroBg.style.transform = `translate3d(0, ${y * 0.35}px, 0)`;
+    ticking = false;
+  };
+  const onScroll = () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(render);
+  };
   window.addEventListener("scroll", onScroll, { passive: true });
-  onScroll();
+  render();
 
   /* ------------------------------------------------------------------
-     4. MOBILE MENU
+     4. MOBILE MENU — premium slide-in nav with blurred overlay,
+     animated close, icons, scroll-lock, focus-trap & ARIA.
+     Enhancements are injected here so every page stays in sync.
   ------------------------------------------------------------------ */
   const hamburger = $(".hamburger");
   const mobileMenu = $(".mobile-menu");
-  const toggleMenu = (force) => {
-    if (!hamburger || !mobileMenu) return;
-    const open = force !== undefined ? force : !mobileMenu.classList.contains("open");
-    mobileMenu.classList.toggle("open", open);
-    hamburger.classList.toggle("open", open);
-    document.body.style.overflow = open ? "hidden" : "";
-  };
-  if (hamburger) hamburger.addEventListener("click", () => toggleMenu());
-  $$(".mobile-menu a").forEach((a) => a.addEventListener("click", () => toggleMenu(false)));
+  let toggleMenu = () => {};
+
+  if (hamburger && mobileMenu) {
+    // Orange chevron shown at the right of every menu item
+    const itemArrow =
+      '<span class="mm-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>';
+
+    // Rebuild the panel from the existing page links (never renaming or
+    // re-routing them): logo header → item list → fixed WhatsApp CTA.
+    const navLinks = $$("a:not(.btn)", mobileMenu);
+    $$(".btn", mobileMenu).forEach((b) => b.remove());
+
+    const list = document.createElement("div");
+    list.className = "mm-list";
+    navLinks.forEach((a) => {
+      const label = a.textContent.trim();
+      a.className = "mm-item";
+      a.innerHTML = '<span class="mm-label">' + label + "</span>" + itemArrow;
+      list.appendChild(a);
+    });
+
+    const header = document.createElement("div");
+    header.className = "mm-header";
+    header.innerHTML =
+      '<a class="mm-brand" href="index.html" aria-label="Ahmed Engineering Company home">' +
+      '<img src="images/logo.png" alt="AEC logo" /></a>' +
+      '<button class="mm-close" type="button" aria-label="Close menu">' +
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>' +
+      "</button>";
+
+    // Reuse the WhatsApp number already configured on the site (float button)
+    const waSource = $(".whatsapp-float");
+    const waHref = (waSource && waSource.getAttribute("href"))
+      || "https://wa.me/923080296473?text=Hello%20Ahmed%20Engineering%20Company%2C%20I%20need%20information%20about%20your%20construction%20services.";
+
+    const footer = document.createElement("a");
+    footer.className = "mm-footer";
+    footer.href = waHref;
+    footer.target = "_blank";
+    footer.rel = "noopener";
+    footer.setAttribute("aria-label", "Start a WhatsApp chat with Ahmed Engineering Company");
+    footer.innerHTML =
+      '<span class="mm-wa-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 00-8.6 15l-1 3.6 3.7-1A10 10 0 1012 2zm5.3 14.2c-.2.6-1.3 1.2-1.8 1.2s-1.2.2-3.7-.9-4-3.6-4.2-3.8-1-1.3-1-2.5.6-1.8.9-2.1c.2-.2.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.4.6c-.2.2-.3.4-.1.7s.7 1.2 1.5 1.9c1 .9 1.8 1.1 2.1 1.3s.4.1.6-.1l.7-.8c.2-.2.4-.2.6-.1l1.9.9c.2.1.4.2.5.3s.1.7-.1 1.3z"/></svg></span>' +
+      '<span class="mm-wa-label">Start a WhatsApp Chat</span>' +
+      '<span class="mm-footer-arrow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>';
+
+    mobileMenu.innerHTML = "";
+    mobileMenu.append(header, list, footer);
+
+    // Overlay that fades in behind the menu
+    let overlay = $(".menu-overlay");
+    if (!overlay) {
+      overlay = document.createElement("div");
+      overlay.className = "menu-overlay";
+      document.body.appendChild(overlay);
+    }
+
+    // Wire up ARIA
+    if (!mobileMenu.id) mobileMenu.id = "mobileMenu";
+    mobileMenu.setAttribute("aria-hidden", "true");
+    hamburger.setAttribute("aria-controls", mobileMenu.id);
+    hamburger.setAttribute("aria-expanded", "false");
+
+    // Stagger the item reveal
+    const items = $$(".mm-item", mobileMenu);
+    items.forEach((a, i) => (a.style.animationDelay = 0.08 + i * 0.06 + "s"));
+
+    const getFocusable = () =>
+      $$('a[href], button:not([disabled])', mobileMenu).filter((el) => el.offsetParent !== null);
+
+    let lastFocused = null;
+
+    toggleMenu = (force) => {
+      const open = force !== undefined ? force : !mobileMenu.classList.contains("open");
+      mobileMenu.classList.toggle("open", open);
+      overlay.classList.toggle("show", open);
+      hamburger.classList.toggle("open", open);
+      hamburger.setAttribute("aria-expanded", String(open));
+      hamburger.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+      mobileMenu.setAttribute("aria-hidden", String(!open));
+      document.body.classList.toggle("menu-open", open);
+      if (open) {
+        lastFocused = document.activeElement;
+        const f = getFocusable();
+        if (f[0]) setTimeout(() => f[0].focus(), 300);
+      } else if (lastFocused) {
+        lastFocused.focus();
+      }
+    };
+
+    hamburger.addEventListener("click", () => toggleMenu());
+    overlay.addEventListener("click", () => toggleMenu(false));
+    $(".mm-close", mobileMenu).addEventListener("click", () => toggleMenu(false));
+    $$("a", mobileMenu).forEach((a) => a.addEventListener("click", () => toggleMenu(false)));
+
+    document.addEventListener("keydown", (e) => {
+      if (!mobileMenu.classList.contains("open")) return;
+      if (e.key === "Escape") { toggleMenu(false); return; }
+      if (e.key === "Tab") {
+        const f = getFocusable();
+        if (!f.length) return;
+        const first = f[0], last = f[f.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    });
+  }
 
   /* ------------------------------------------------------------------
      5. ACTIVE NAV LINK (based on current filename)
