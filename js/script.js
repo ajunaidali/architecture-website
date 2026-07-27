@@ -568,4 +568,226 @@ WHY CHOOSE US
      20. Footer year
   ------------------------------------------------------------------ */
   $$(".js-year").forEach((el) => (el.textContent = new Date().getFullYear()));
+
+  /* ------------------------------------------------------------------
+     21. MOSQUE DOME PORTFOLIO — timeline progress + premium lightbox
+     Self-contained: only runs on the Projects page. Supports keyboard
+     navigation, wheel zoom, pinch-to-zoom, drag-to-pan, swipe gestures,
+     lazy loading with a loading spinner, counter and captions.
+  ------------------------------------------------------------------ */
+  (function initMosquePortfolio() {
+    const timeline = $("#mosqueGallery");
+
+    // Animate the connecting timeline line when it scrolls into view
+    if (timeline && "IntersectionObserver" in window) {
+      const tio = new IntersectionObserver((entries, obs) => {
+        entries.forEach((en) => {
+          if (en.isIntersecting) { en.target.classList.add("mdp-animate"); obs.unobserve(en.target); }
+        });
+      }, { threshold: 0.2 });
+      tio.observe(timeline);
+    } else if (timeline) {
+      timeline.classList.add("mdp-animate");
+    }
+
+    const lb = $("#mosqueLightbox");
+    if (!lb || !timeline) return;
+
+    const triggers = $$(".mdp-step-media", timeline);
+    const slides = triggers.map((btn) => {
+      const img = $("img", btn);
+      const heading = $(".mdp-step-text h4", btn.closest(".mdp-step"));
+      return { src: img.getAttribute("src"), alt: img.alt || "", caption: (heading && heading.textContent.trim()) || img.alt || "" };
+    });
+    if (!slides.length) return;
+
+    const lbImg = $(".mdp-lb-img", lb);
+    const spinner = $(".mdp-lb-spinner", lb);
+    const counter = $(".mdp-lb-counter", lb);
+    const caption = $(".mdp-lb-caption", lb);
+    const stage = $(".mdp-lb-stage", lb);
+    const closeBtn = $(".mdp-lb-close", lb);
+    const prevBtn = $(".mdp-lb-prev", lb);
+    const nextBtn = $(".mdp-lb-next", lb);
+
+    let index = 0;
+    let loadToken = 0;
+    let scale = 1, tx = 0, ty = 0;
+    let isDragging = false, dragStartX = 0, dragStartY = 0, baseTx = 0, baseTy = 0;
+    let prefetched = false;
+
+    const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
+
+    const prefetchAll = () => {
+      if (prefetched) return;
+      prefetched = true;
+      slides.forEach((s) => { const i = new Image(); i.src = s.src; });
+    };
+
+    const applyTransform = (smooth) => {
+      lbImg.style.transition = smooth ? "transform 0.3s cubic-bezier(0.16,1,0.3,1)" : "none";
+      lbImg.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+      lbImg.classList.toggle("zoomed", scale > 1.01);
+    };
+    const resetZoom = () => { scale = 1; tx = 0; ty = 0; };
+
+    const render = (dir) => {
+      const token = ++loadToken;
+      counter.textContent = (index + 1) + " / " + slides.length;
+      caption.textContent = slides[index].caption;
+      resetZoom();
+      spinner.classList.add("show");
+      lbImg.classList.remove("loaded");
+
+      const pre = new Image();
+      const src = slides[index].src;
+      const show = () => {
+        if (token !== loadToken) return;
+        lbImg.src = src;
+        lbImg.alt = slides[index].alt;
+        lbImg.style.transition = "none";
+        lbImg.style.transform = `translateX(${(dir || 0) * 48}px) scale(1)`;
+        void lbImg.offsetWidth;
+        lbImg.style.transition = "opacity 0.45s ease, transform 0.45s cubic-bezier(0.16,1,0.3,1)";
+        lbImg.classList.add("loaded");
+        lbImg.style.transform = "translateX(0) scale(1)";
+        spinner.classList.remove("show");
+      };
+      pre.onload = show;
+      pre.onerror = show;
+      pre.src = src;
+      if (pre.complete && pre.naturalWidth) show();
+    };
+
+    let lastFocused = null;
+    const open = (i) => {
+      index = clamp(i, 0, slides.length - 1);
+      lb.classList.add("open");
+      lb.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+      document.body.classList.add("mdp-lb-active");
+      lastFocused = document.activeElement;
+      render(0);
+      prefetchAll();
+      closeBtn.focus();
+    };
+    const close = () => {
+      lb.classList.remove("open");
+      lb.setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+      document.body.classList.remove("mdp-lb-active");
+      resetZoom();
+      applyTransform(false);
+      if (lastFocused && typeof lastFocused.focus === "function") lastFocused.focus();
+    };
+    const go = (dir) => {
+      index = (index + dir + slides.length) % slides.length;
+      render(dir);
+    };
+
+    triggers.forEach((btn, i) => btn.addEventListener("click", () => open(i)));
+    closeBtn.addEventListener("click", close);
+    prevBtn.addEventListener("click", () => go(-1));
+    nextBtn.addEventListener("click", () => go(1));
+    $(".mdp-lb-backdrop", lb).addEventListener("click", close);
+
+    document.addEventListener("keydown", (e) => {
+      if (!lb.classList.contains("open")) return;
+      if (e.key === "Escape") { e.preventDefault(); close(); }
+      else if (e.key === "ArrowLeft") { e.preventDefault(); go(-1); }
+      else if (e.key === "ArrowRight") { e.preventDefault(); go(1); }
+      else if (e.key === "Home") { e.preventDefault(); index = 0; render(-1); }
+      else if (e.key === "End") { e.preventDefault(); index = slides.length - 1; render(1); }
+      else if (e.key === "Tab") {
+        // Keep focus trapped inside the lightbox controls
+        const focusables = [closeBtn, prevBtn, nextBtn];
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      }
+    });
+
+    /* --- Mouse wheel zoom --- */
+    stage.addEventListener("wheel", (e) => {
+      if (!lb.classList.contains("open")) return;
+      e.preventDefault();
+      const prev = scale;
+      scale = clamp(scale - e.deltaY * 0.0016 * scale, 1, 4);
+      if (scale <= 1.01) { tx = 0; ty = 0; }
+      else {
+        const f = scale / prev;
+        tx *= f; ty *= f;
+      }
+      applyTransform(true);
+    }, { passive: false });
+
+    /* --- Double click / double tap to toggle zoom --- */
+    stage.addEventListener("dblclick", () => {
+      if (scale > 1.01) { resetZoom(); } else { scale = 2.4; }
+      applyTransform(true);
+    });
+
+    /* --- Drag to pan (mouse) when zoomed --- */
+    stage.addEventListener("mousedown", (e) => {
+      if (scale <= 1.01) return;
+      isDragging = true; dragStartX = e.clientX; dragStartY = e.clientY; baseTx = tx; baseTy = ty;
+      lbImg.classList.add("dragging");
+      e.preventDefault();
+    });
+    window.addEventListener("mousemove", (e) => {
+      if (!isDragging) return;
+      tx = baseTx + (e.clientX - dragStartX);
+      ty = baseTy + (e.clientY - dragStartY);
+      applyTransform(false);
+    });
+    window.addEventListener("mouseup", () => { isDragging = false; lbImg.classList.remove("dragging"); });
+
+    /* --- Touch: swipe to navigate, drag to pan, pinch to zoom --- */
+    let touchStartX = 0, touchStartY = 0, startTx = 0, startTy = 0;
+    let pinchStartDist = 0, pinchStartScale = 1, isPinching = false, touchMoved = false;
+    const dist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+
+    stage.addEventListener("touchstart", (e) => {
+      if (e.touches.length === 2) {
+        isPinching = true;
+        pinchStartDist = dist(e.touches);
+        pinchStartScale = scale;
+      } else if (e.touches.length === 1) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        startTx = tx; startTy = ty; touchMoved = false;
+      }
+    }, { passive: true });
+
+    stage.addEventListener("touchmove", (e) => {
+      if (isPinching && e.touches.length === 2) {
+        e.preventDefault();
+        const f = dist(e.touches) / (pinchStartDist || 1);
+        scale = clamp(pinchStartScale * f, 1, 4);
+        if (scale <= 1.01) { tx = 0; ty = 0; }
+        applyTransform(false);
+      } else if (e.touches.length === 1 && scale > 1.01) {
+        e.preventDefault();
+        tx = startTx + (e.touches[0].clientX - touchStartX);
+        ty = startTy + (e.touches[0].clientY - touchStartY);
+        touchMoved = true;
+        applyTransform(false);
+      } else if (e.touches.length === 1) {
+        if (Math.abs(e.touches[0].clientX - touchStartX) > 8) touchMoved = true;
+      }
+    }, { passive: false });
+
+    stage.addEventListener("touchend", (e) => {
+      if (isPinching) {
+        isPinching = false;
+        if (scale <= 1.01) { resetZoom(); applyTransform(true); }
+        return;
+      }
+      if (scale <= 1.01 && touchMoved) {
+        const dx = (e.changedTouches[0].clientX - touchStartX);
+        if (Math.abs(dx) > 55) go(dx < 0 ? 1 : -1);
+      }
+    });
+  })();
 })();
