@@ -119,7 +119,7 @@
     header.className = "mm-header";
     header.innerHTML =
       '<a class="mm-brand" href="index.html" aria-label="Ahmed Engineering Company home">' +
-      '<img src="images/logo.png" alt="AEC logo" /></a>' +
+      '<img src="images/logo.webp" alt="AEC logo" /></a>' +
       '<button class="mm-close" type="button" aria-label="Close menu">' +
       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>' +
       "</button>";
