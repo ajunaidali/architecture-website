@@ -571,7 +571,7 @@ WHY CHOOSE US
 
   /* ------------------------------------------------------------------
      21. MOSQUE DOME PORTFOLIO — timeline progress + premium lightbox
-     Self-contained: only runs on the Projects page. Supports keyboard
+     Self-contained: runs on pages with #mosqueGallery / #mosqueLightbox.
      navigation, wheel zoom, pinch-to-zoom, drag-to-pan, swipe gestures,
      lazy loading with a loading spinner, counter and captions.
   ------------------------------------------------------------------ */
