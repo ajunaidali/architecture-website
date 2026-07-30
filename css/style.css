@@ -472,7 +472,10 @@ body.menu-open { overflow: hidden; }
 .page-hero {
   position: relative; padding: calc(var(--nav-h) + 70px) 0 70px; color: #fff; text-align: center; overflow: hidden;
 }
-.page-hero .hero-bg { inset: 0; }
+.page-hero .hero-bg {
+  inset: 0;
+  background: url("../images/hero-construction-4k.webp") center/cover no-repeat;
+}
 .page-hero::after { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(120deg, rgba(30,30,30,0.9), rgba(47,62,70,0.7)); }
 .page-hero h1 { color: #fff; font-size: clamp(2rem, 5vw, 3.4rem); margin-bottom: 12px; }
 .breadcrumb { display: inline-flex; gap: 8px; align-items: center; color: rgba(255,255,255,0.8); font-size: 0.9rem; }
